@@ -3,11 +3,16 @@ import "dotenv/config";
 import "./database.js";
 import bcrypt from "bcrypt";
 import Joi from "joi";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
 const app = express();
 const port = 3000;
 import { User } from "./models/model.js";
 
+app.use(cookieParser());
 app.use(express.json());
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const signupSchema = Joi.object({
   name: Joi.string().min(3).required(),
@@ -23,7 +28,7 @@ app.post("/api/v1/signup", async (req, res) => {
   }
   const { error } = signupSchema.validate(req.body);
   if (error) {
-    res.status(200).send({ message: error.details[0].message });
+    res.status(400).send({ message: error.details[0].message });
     return;
     //this check all parameter are correct/valid
   }
@@ -42,7 +47,11 @@ app.post("/api/v1/signup", async (req, res) => {
       email: req.body.email,
     });
 
-    res.status(201).send({ message: "SignUp successfully", data: result });
+    const { password, __v, ...userWithOutPassword } = result.toObject();
+
+    res
+      .status(201)
+      .send({ message: "SignUp successfully", data: userWithOutPassword });
   } catch (error) {
     res
       .status(500)
@@ -62,12 +71,53 @@ app.post("/api/v1/login", async (req, res) => {
     return;
     //this check that the password user enter match with the user.password
   }
-  res.status(200).send({ message: "Login SuccessFully!" });
+  const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+    expiresIn: "7d",
+  });
+  res
+    .cookie("myToken", token, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      sameSite: "Strict", // You can try changing this to "Lax" if you're using CORS with different origins
+    })
+    .status(200)
+    .send({ message: "Login SuccessFully!", token: token });
+});
+
+const authenticateToken = (req, res, next) => {
+  try {
+    const token = req.cookies.myToken;
+    if (!token) {
+      return res.status(401).send({ message: "Token missing hai" });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) {
+        return res
+          .status(403)
+          .send({ message: "Token invalid ya expire ho gaya hai" });
+      }
+      req.user = user; // Attach user information to the request
+      next(); // Proceed to the next middleware or route handler
+    });
+  } catch (error) {
+    console.error(error); // Log the error for debugging
+    res
+      .status(400)
+      .send({ message: "Error in authentication", error: error.message });
+  }
+};
+
+app.get("/api/v1/protected", authenticateToken, (req, res) => {
+  res.send({ message: "This is a protected route", user: req.user });
 });
 app.get("/", (req, res) => {
   res.send("Api working!");
 });
-
+app.post("/api/v1/logout", (req, res) => {
+  res.clearCookie("myToken", { httpOnly: true });
+  res.status(200).send({ message: "Logged out successfully" });
+});
 app.use((request, response) => {
   response.status(404).send({ message: "no route found!" });
 });
