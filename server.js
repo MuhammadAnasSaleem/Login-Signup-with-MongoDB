@@ -4,12 +4,20 @@ import "./database.js";
 import bcrypt from "bcrypt";
 import Joi from "joi";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 const app = express();
 const port = 3000;
 import { User } from "./models/model.js";
 
 app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -78,7 +86,7 @@ app.post("/api/v1/login", async (req, res) => {
     .cookie("myToken", token, {
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      sameSite: "Strict", // You can try changing this to "Lax" if you're using CORS with different origins
+      sameSite: "Lax", // You can try changing this to "Lax" if you're using CORS with different origins
     })
     .status(200)
     .send({ message: "Login SuccessFully!", token: token });
@@ -87,6 +95,8 @@ app.post("/api/v1/login", async (req, res) => {
 const authenticateToken = (req, res, next) => {
   try {
     const token = req.cookies.myToken;
+    // console.log("Token in cookies:", req.cookies.myToken);
+
     if (!token) {
       return res.status(401).send({ message: "Token missing hai" });
     }
@@ -115,9 +125,23 @@ app.get("/", (req, res) => {
   res.send("Api working!");
 });
 app.post("/api/v1/logout", (req, res) => {
-  res.clearCookie("myToken", { httpOnly: true });
+  const token = req.cookies.myToken;
+
+  // Check if the token exists
+  if (!token) {
+    // Log a message and return a success response indicating the user is already logged out
+    console.log("No token found, user may already be logged out.");
+    return res.status(200).send({ message: "Already logged out" });
+  }
+
+  res.clearCookie("myToken", {
+    httpOnly: true,
+    sameSite: "Strict", // Should match the sameSite setting you used when setting the cookie
+  });
+
   res.status(200).send({ message: "Logged out successfully" });
 });
+
 app.use((request, response) => {
   response.status(404).send({ message: "no route found!" });
 });
