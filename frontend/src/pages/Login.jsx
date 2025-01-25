@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 export default function Login() {
@@ -8,6 +8,7 @@ export default function Login() {
     email: "",
     password: "",
   });
+  const navigate = useNavigate();
   const handleLogin = async (formData) => {
     try {
       const response = await axios.post(`${baseurl}/login `, formData, {
@@ -15,21 +16,24 @@ export default function Login() {
       });
       alert(response.data.message);
       setFormData({ password: "", email: "" });
-      const protectedRoute = async () => {
-        try {
-          const response = await axios.get(`${baseurl}/protected`, {
-            withCredentials: true,
-          });
-          console.log("protected route data ", response.data);
-          alert(response.data.message);
-        } catch (error) {
-          console.log("error in protected route");
-          alert(
-            error.response?.data?.message || "Error accessing protected route"
-          );
-        }
-      };
-      protectedRoute();
+
+      navigate("/protected");
+
+      // const protectedRoute = async () => {
+      //   try {
+      //     const response = await axios.get(`${baseurl}/protected`, {
+      //       withCredentials: true,
+      //     });
+      //     console.log("protected route data ", response.data);
+      //     alert(response.data.message);
+      //   } catch (error) {
+      //     console.log("error in protected route");
+      //     alert(
+      //       error.response?.data?.message || "Error accessing protected route"
+      //     );
+      //   }
+      // };
+      // protectedRoute();
     } catch (error) {
       alert(error.response?.data?.message || "error in login");
       console.log(error);
@@ -44,21 +48,21 @@ export default function Login() {
         { withCredentials: true }
       );
       alert(response.data.message);
-      const protectedRoute = async () => {
-        try {
-          const response = await axios.get(`${baseurl}/protected`, {
-            withCredentials: true,
-          });
-          console.log("protected route data ", response.data);
-          alert(response.data.message);
-        } catch (error) {
-          console.log("error in protected route");
-          alert(
-            error.response?.data?.message || "Error accessing protected route"
-          );
-        }
-      };
-      protectedRoute();
+      // const protectedRoute = async () => {
+      //   try {
+      //     const response = await axios.get(`${baseurl}/protected`, {
+      //       withCredentials: true,
+      //     });
+      //     console.log("protected route data ", response.data);
+      //     alert(response.data.message);
+      //   } catch (error) {
+      //     console.log("error in protected route");
+      //     alert(
+      //       error.response?.data?.message || "Error accessing protected route"
+      //     );
+      //   }
+      // };
+      // protectedRoute();
     } catch (error) {
       alert(error.response?.data?.message || "Error logging out");
     }

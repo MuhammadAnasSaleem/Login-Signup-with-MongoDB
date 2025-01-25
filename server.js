@@ -104,7 +104,7 @@ const authenticateToken = (req, res, next) => {
     jwt.verify(token, JWT_SECRET, (err, user) => {
       if (err) {
         return res
-          .status(403)
+          .status(401)
           .send({ message: "Token invalid ya expire ho gaya hai" });
       }
       req.user = user; // Attach user information to the request
@@ -113,7 +113,7 @@ const authenticateToken = (req, res, next) => {
   } catch (error) {
     console.error(error); // Log the error for debugging
     res
-      .status(400)
+      .status(401)
       .send({ message: "Error in authentication", error: error.message });
   }
 };
